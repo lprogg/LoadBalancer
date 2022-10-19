@@ -3,15 +3,18 @@ package main
 import (
 	"flag"
 	"fmt"
+	"log"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
+	"os"
+
 	"github.com/lprogg/LoadBalancer/util"
 )
 
 var (
 	port = flag.Int("port", 8080, "Starting port")
-	urls = []string{"http://localhost:8081"}
+	configFile = flag.String("config-path", "", "Config yaml file that needs to be supplied")
 )
 
 type LoadBalancer struct {
@@ -20,9 +23,11 @@ type LoadBalancer struct {
 }
 
 func (lb *LoadBalancer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	fmt.Printf("Received new request from url: %s\n", r.Host)
+	fmt.Printf("Received new request from url: '%s'\n", r.Host)
+	
 	next := lb.ServerList.NextServer()
-	fmt.Printf("Forwarding to server: %d\n", next)
+	fmt.Printf("Forwarding to server: '%d'\n", next)
+	
 	lb.ServerList.Servers[next].Proxy.ServeHTTP(w, r)
 }
 
@@ -34,7 +39,7 @@ func InitNewLoadBalancer(c *util.Config) *LoadBalancer {
 			url, err := url.Parse(replica)
 
 			if err != nil {
-				fmt.Println(err)
+				log.Fatal(err)
 			}
 
 			proxy := httputil.NewSingleHostReverseProxy(url)
@@ -58,19 +63,26 @@ func InitNewLoadBalancer(c *util.Config) *LoadBalancer {
 func main() {
 	flag.Parse()
 
+	file, err := os.Open(*configFile)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	defer file.Close()
+
+	conf, err := util.LoadConfig(file)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	server := http.Server {
 		Addr: fmt.Sprintf(":%d", *port),
-		Handler: InitNewLoadBalancer(&util.Config {
-			Services: []*util.Service {
-				{
-					Name: "LoadBalancer",
-					Replicas: urls,
-				},
-			},
-		}),
+		Handler: InitNewLoadBalancer(conf),
 	}
 
 	if err:= server.ListenAndServe(); err != nil {
-		fmt.Println(err)
+		log.Fatal(err)
 	}
 }
