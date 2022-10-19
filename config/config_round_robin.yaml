@@ -1,0 +1,7 @@
+services:
+- name: round_robin_service
+  strategy: round_robin
+  matcher: "/"
+  replicas:
+  - url: localhost:8081
+  - url: localhost:8082
