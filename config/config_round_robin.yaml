@@ -1,7 +1,7 @@
 services:
-- name: round_robin_service
-  strategy: round_robin
-  matcher: "/"
-  replicas:
-  - url: localhost:8081
-  - url: localhost:8082
+  - 
+    name: Round Robin Service
+    replicas:
+      - http://localhost:8081
+      - http://localhost:8082
+strategy: Round Robin
