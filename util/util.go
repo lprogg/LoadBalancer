@@ -7,13 +7,13 @@ import (
 )
 
 type Service struct {
-	Name string
-	Replicas []string
+	Name string `yaml:"name"`
+	Replicas []string `yaml:"replicas"`
 }
 
 type Config struct {
-	Services []*Service
-	Strategy string
+	Services []*Service `yaml:"services"`
+	Strategy string `yaml:"strategy"`
 }
 
 type Server struct {
