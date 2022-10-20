@@ -13,7 +13,7 @@ import (
 )
 
 var (
-	port = flag.Int("port", 8080, "Starting port")
+	port = flag.Int("port", util.Ports[0], "Starting port")
 	configFile = flag.String("config-path", "", "Config yaml file that needs to be supplied")
 )
 

@@ -6,6 +6,8 @@ import (
 	"sync/atomic"
 )
 
+var Ports = []int{8080, 8081}
+
 type Service struct {
 	Name string `yaml:"name"`
 	Replicas []string `yaml:"replicas"`

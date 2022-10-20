@@ -5,9 +5,11 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+
+	"github.com/lprogg/LoadBalancer/util"
 )
 
-var port = flag.Int("port", 8081, "Starting port of the mock server")
+var port = flag.Int("port", util.Ports[1], "Starting port of the mock server")
 
 type MockServer struct {}
 
