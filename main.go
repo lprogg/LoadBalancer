@@ -8,6 +8,7 @@ import (
 	"net/http/httputil"
 	"net/url"
 	"os"
+	"strings"
 
 	"github.com/lprogg/LoadBalancer/util"
 )
@@ -19,20 +20,41 @@ var (
 
 type LoadBalancer struct {
 	Config *util.Config
-	ServerList *util.ServerList
+	ServerList map[string]*util.ServerList
+}
+
+func (lb *LoadBalancer) findServiceList(requestPath string) (*util.ServerList, error) {
+	fmt.Printf("Trying to find matcher for the specified request '%s'\n", requestPath)
+	for matcher, service := range lb.ServerList {
+		if strings.HasPrefix(requestPath, matcher) {
+			fmt.Printf("Found service '%s' matching the specified request", service.Name)
+			return service, nil
+		}
+	}
+
+	return nil, fmt.Errorf("could not find a matcher for the url: '%s'", requestPath)
 }
 
 func (lb *LoadBalancer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	fmt.Printf("Received new request from url: '%s'\n", r.Host)
 	
-	next := lb.ServerList.NextServer()
+	serviceList, err := lb.findServiceList(r.URL.Path)
+
+	if err != nil {
+		log.Fatal(err)
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
+
+	next := serviceList.NextServer()
 	fmt.Printf("Forwarding to server: '%d'\n", next)
 	
-	lb.ServerList.Servers[next].Proxy.ServeHTTP(w, r)
+	serviceList.Servers[next].Proxy.ServeHTTP(w, r)
 }
 
 func InitNewLoadBalancer(c *util.Config) *LoadBalancer {
 	listOfServers := make([]*util.Server, 0)
+	mapOfServers := make(map[string]*util.ServerList, 0)
 
 	for _, service := range c.Services {
 		for _, replica := range service.Replicas {
@@ -49,14 +71,16 @@ func InitNewLoadBalancer(c *util.Config) *LoadBalancer {
 				Proxy: proxy,
 			})
 		}
+		mapOfServers[service.Matcher] = &util.ServerList{
+			Servers: listOfServers,
+			Current: 0,
+			Name: service.Name,
+		}
 	}
 
 	return &LoadBalancer {
 		Config: c,
-		ServerList: &util.ServerList {
-			Servers: listOfServers,
-			Current: 0,
-		},
+		ServerList: mapOfServers,
 	}
 }
 
