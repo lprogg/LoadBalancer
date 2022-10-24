@@ -10,6 +10,7 @@ var Ports = []int{8080, 8081}
 
 type Service struct {
 	Name string `yaml:"name"`
+	Matcher string `yaml:"matcher"`
 	Replicas []string `yaml:"replicas"`
 }
 
@@ -26,6 +27,7 @@ type Server struct {
 type ServerList struct {
 	Servers []*Server
 	Current uint64
+	Name string
 }
 
 func (sl *ServerList) NextServer() uint64 {
