@@ -6,14 +6,14 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/lprogg/LoadBalancer/util"
+	"github.com/lprogg/LoadBalancer/ports"
 )
 
-var port = flag.Int("port", util.Ports[1], "Starting port of the mock server")
+var port = flag.Int("port", ports.MockServerPort, "Starting port of the mock server")
 
 type MockServer struct {}
 
-func (ds *MockServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (ms *MockServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(200)
 	w.Write([]byte(fmt.Sprintf("Server %d is ready.\n", *port)))
 }

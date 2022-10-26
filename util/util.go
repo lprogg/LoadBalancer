@@ -1,37 +1,16 @@
 package util
 
 import (
-	"net/http/httputil"
-	"net/url"
-	"sync/atomic"
+	"github.com/lprogg/LoadBalancer/domain"
+	"github.com/lprogg/LoadBalancer/strategy"
 )
 
-var Ports = []int{8080, 8081}
-
-type Service struct {
-	Name string `yaml:"name"`
-	Matcher string `yaml:"matcher"`
-	Replicas []string `yaml:"replicas"`
-}
-
 type Config struct {
-	Services []*Service `yaml:"services"`
-	Strategy string `yaml:"strategy"`
-}
-
-type Server struct {
-	Url *url.URL
-	Proxy *httputil.ReverseProxy
+	Services []*domain.Service `yml:"services"`
 }
 
 type ServerList struct {
-	Servers []*Server
-	Current uint64
+	Servers []*domain.Server
 	Name string
-}
-
-func (sl *ServerList) NextServer() uint64 {
-	next := atomic.AddUint64(&sl.Current, 1)
-	serversLen := uint64(len(sl.Servers))
-	return next % serversLen
+	Strategy strategy.BalancingStrategy
 }

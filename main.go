@@ -10,11 +10,14 @@ import (
 	"os"
 	"strings"
 
+	"github.com/lprogg/LoadBalancer/domain"
+	"github.com/lprogg/LoadBalancer/ports"
+	"github.com/lprogg/LoadBalancer/strategy"
 	"github.com/lprogg/LoadBalancer/util"
 )
 
 var (
-	port = flag.Int("port", util.Ports[0], "Starting port")
+	port = flag.Int("port", ports.DefaultPort, "Starting port")
 	configFile = flag.String("config-path", "", "Config yaml file that needs to be supplied")
 )
 
@@ -46,15 +49,21 @@ func (lb *LoadBalancer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	next := serviceList.NextServer()
-	fmt.Printf("Forwarding to server: '%d'\n", next)
-	
-	serviceList.Servers[next].Proxy.ServeHTTP(w, r)
+	next, err := serviceList.Strategy.NextServer(serviceList.Servers)
+
+	if err != nil {
+		log.Fatal(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	fmt.Printf("Forwarding to server: '%s'\n", next.Url.RawPath)
+	next.Proxy.ServeHTTP(w, r)
 }
 
 func InitNewLoadBalancer(c *util.Config) *LoadBalancer {
-	listOfServers := make([]*util.Server, 0)
-	mapOfServers := make(map[string]*util.ServerList, 0)
+	listOfServers := make([]*domain.Server, 0)
+	mapOfServers := make(map[string]*util.ServerList)
 
 	for _, service := range c.Services {
 		for _, replica := range service.Replicas {
@@ -66,15 +75,15 @@ func InitNewLoadBalancer(c *util.Config) *LoadBalancer {
 
 			proxy := httputil.NewSingleHostReverseProxy(url)
 			
-			listOfServers = append(listOfServers, &util.Server {
+			listOfServers = append(listOfServers, &domain.Server {
 				Url: url,
 				Proxy: proxy,
 			})
 		}
 		mapOfServers[service.Matcher] = &util.ServerList{
 			Servers: listOfServers,
-			Current: 0,
 			Name: service.Name,
+			Strategy: strategy.LoadStrategy(service.Strategy),
 		}
 	}
 
@@ -95,7 +104,7 @@ func main() {
 
 	defer file.Close()
 
-	conf, err := util.LoadConfig(file)
+	config, err := util.LoadConfig(file)
 
 	if err != nil {
 		log.Fatal(err)
@@ -103,7 +112,7 @@ func main() {
 
 	server := http.Server {
 		Addr: fmt.Sprintf(":%d", *port),
-		Handler: InitNewLoadBalancer(conf),
+		Handler: InitNewLoadBalancer(config),
 	}
 
 	if err:= server.ListenAndServe(); err != nil {

@@ -14,11 +14,11 @@ func LoadConfig(r io.Reader) (*Config, error) {
 		return nil, err
 	}
 
-	conf := Config{}
+	config := Config{}
 
-	if err := yaml.Unmarshal(buf, &conf); err != nil {
+	if err := yaml.Unmarshal(buf, &config); err != nil {
 		return nil, err
 	}
 
-	return &conf, nil
+	return &config, nil
 }
