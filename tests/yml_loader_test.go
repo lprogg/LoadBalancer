@@ -12,27 +12,27 @@ func TestLoadConfig(t *testing.T) {
 services:
   - 
     name: Round Robin Service
-    matcher: /api/v1
+    matcher: /
+    strategy: RoundRobin
     replicas:
       - localhost:8081
       - localhost:8082
-strategy: Round Robin
 `))
 
 	if err != nil {
 		t.Errorf("Error should be nil: '%s'", err)
 	}
 
-	if conf.Strategy != "Round Robin" {
-		t.Errorf("Strategy is expected to be 'Round Robin', got instead: '%s'", conf.Strategy)
-	}
-
 	if len(conf.Services) != 1 {
 		t.Errorf("Expected to be 1 service, got instead: '%d'", len(conf.Services))
 	}
 
-	if conf.Services[0].Matcher != "/api/v1" {
-		t.Errorf("Matcher is expected to be '/api/v1', got instead: '%s'", conf.Services[0].Matcher)
+	if conf.Services[0].Matcher != "/" {
+		t.Errorf("Matcher is expected to be '/', got instead: '%s'", conf.Services[0].Matcher)
+	}
+
+	if conf.Services[0].Strategy != "RoundRobin" {
+		t.Errorf("Strategy is expected to be 'RoundRobin', got instead: '%s'", conf.Services[0].Strategy)
 	}
 
 	if conf.Services[0].Name != "Round Robin Service" {
