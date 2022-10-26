@@ -30,7 +30,7 @@ func (lb *LoadBalancer) findServiceList(requestPath string) (*util.ServerList, e
 	fmt.Printf("Trying to find matcher for the specified request '%s'\n", requestPath)
 	for matcher, service := range lb.ServerList {
 		if strings.HasPrefix(requestPath, matcher) {
-			fmt.Printf("Found service '%s' matching the specified request", service.Name)
+			fmt.Printf("Found service '%s' matching the specified request\n", service.Name)
 			return service, nil
 		}
 	}
@@ -57,7 +57,7 @@ func (lb *LoadBalancer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fmt.Printf("Forwarding to server: '%s'\n", next.Url.RawPath)
+	fmt.Printf("Forwarding to server: '%s'\n\n", next.Url.Host)
 	next.Proxy.ServeHTTP(w, r)
 }
 
