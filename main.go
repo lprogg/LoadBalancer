@@ -57,7 +57,7 @@ func (lb *LoadBalancer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fmt.Printf("Forwarding to server: '%s'\n\n", next.Url.Host)
+	fmt.Printf("Forwarding to server: '%s'\n\n", next.URL.Host)
 	next.Proxy.ServeHTTP(w, r)
 }
 
@@ -67,7 +67,7 @@ func InitNewLoadBalancer(c *util.Config) *LoadBalancer {
 
 	for _, service := range c.Services {
 		for _, replica := range service.Replicas {
-			url, err := url.Parse(replica)
+			url, err := url.Parse(replica.URL)
 
 			if err != nil {
 				log.Fatal(err)
@@ -76,7 +76,7 @@ func InitNewLoadBalancer(c *util.Config) *LoadBalancer {
 			proxy := httputil.NewSingleHostReverseProxy(url)
 			
 			listOfServers = append(listOfServers, &domain.Server {
-				Url: url,
+				URL: url,
 				Proxy: proxy,
 			})
 		}

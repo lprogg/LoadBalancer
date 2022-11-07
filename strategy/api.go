@@ -24,7 +24,7 @@ func (r *RoundRobin) NextServer(servers []*domain.Server) (*domain.Server, error
 	serversLen := uint64(len(servers))
 	selected := servers[next % serversLen]
 
-	fmt.Printf("Strategy selected server: '%s'\n", selected.Url.Host)
+	fmt.Printf("Strategy selected server: '%s'\n", selected.URL.Host)
 
 	return selected, nil
 }
