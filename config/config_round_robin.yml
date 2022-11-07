@@ -4,5 +4,5 @@ services:
     matcher: /
     strategy: RoundRobin
     replicas:
-      - http://localhost:8081
-      - http://localhost:8082
+      - url: http://localhost:8081
+      - url: http://localhost:8082
