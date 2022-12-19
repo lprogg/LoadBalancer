@@ -79,10 +79,10 @@ func LoadStrategy(name string) BalancingStrategy {
 	strategy, ok := strategies[name]
 	
 	if !ok {
-		fmt.Printf("Strategy '%s' not found, falling back to a RoundRobinStrategy\n", name)
+		fmt.Printf("Strategy '%s' not found, falling back to a RoundRobinStrategy\n\n", name)
 		return strategies[RoundRobinStrategy]()
 	}
 
-	fmt.Printf("Picked strategy '%s'\n", name)
+	fmt.Printf("Picked strategy '%s'\n\n", name)
 	return strategy()
 }
