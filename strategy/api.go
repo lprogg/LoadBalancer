@@ -10,7 +10,7 @@ import (
 
 const (
 	RoundRobinStrategy = "RoundRobin"
-	WeightedRoundRobinStrategy = "WeightedRoundRobinStrategy"
+	WeightedRoundRobinStrategy = "WeightedRoundRobin"
 )
 
 var strategies map[string]func() BalancingStrategy
@@ -79,8 +79,10 @@ func LoadStrategy(name string) BalancingStrategy {
 	strategy, ok := strategies[name]
 	
 	if !ok {
+		fmt.Printf("Strategy '%s' not found, falling back to a RoundRobinStrategy\n", name)
 		return strategies[RoundRobinStrategy]()
 	}
 
+	fmt.Printf("Picked strategy '%s'\n", name)
 	return strategy()
 }
