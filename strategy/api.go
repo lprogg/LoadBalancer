@@ -1,11 +1,11 @@
 package strategy
 
 import (
-	"fmt"
 	"sync"
 	"sync/atomic"
 
 	"github.com/lprogg/LoadBalancer/domain"
+	log "github.com/sirupsen/logrus"
 )
 
 const (
@@ -34,7 +34,7 @@ func (r *RoundRobin) NextServer(servers []*domain.Server) (*domain.Server, error
 	serversLen := uint64(len(servers))
 	selected := servers[next % serversLen]
 
-	fmt.Printf("Strategy selected server: '%s'\n", selected.URL.Host)
+	log.Infof("Strategy selected server: '%s'\n", selected.URL.Host)
 
 	return selected, nil
 }
@@ -52,13 +52,13 @@ func (r *WeightedRoundRobin) NextServer(servers []*domain.Server) (*domain.Serve
 	
 	if r.count[r.current] <= capacity {
 		r.count[r.current] += 1
-		fmt.Printf("Strategy selected server: '%s'\n", servers[r.current].URL.Host)
+		log.Infof("Strategy selected server: '%s'\n", servers[r.current].URL.Host)
 		return servers[r.current], nil
 	}
 
 	r.count[r.current] = 0
 	r.current = (r.current + 1) % len(servers)
-	fmt.Printf("Strategy selected server: '%s'\n", servers[r.current].URL.Host)
+	log.Infof("Strategy selected server: '%s'\n", servers[r.current].URL.Host)
 	
 	return servers[r.current], nil
 }
@@ -79,10 +79,10 @@ func LoadStrategy(name string) BalancingStrategy {
 	strategy, ok := strategies[name]
 	
 	if !ok {
-		fmt.Printf("Strategy '%s' not found, falling back to a RoundRobinStrategy\n\n", name)
+		log.Warnf("Strategy '%s' not found, falling back to a RoundRobinStrategy\n\n", name)
 		return strategies[RoundRobinStrategy]()
 	}
 
-	fmt.Printf("Picked strategy '%s'\n\n", name)
+	log.Infof("Picked strategy '%s'\n\n", name)
 	return strategy()
 }

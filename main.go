@@ -3,7 +3,6 @@ package main
 import (
 	"flag"
 	"fmt"
-	"log"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
@@ -11,9 +10,11 @@ import (
 	"strings"
 
 	"github.com/lprogg/LoadBalancer/domain"
+	"github.com/lprogg/LoadBalancer/health"
 	"github.com/lprogg/LoadBalancer/ports"
 	"github.com/lprogg/LoadBalancer/strategy"
 	"github.com/lprogg/LoadBalancer/util"
+	log "github.com/sirupsen/logrus"
 )
 
 var (
@@ -27,10 +28,10 @@ type LoadBalancer struct {
 }
 
 func (lb *LoadBalancer) findServiceList(requestPath string) (*util.ServerList, error) {
-	fmt.Printf("Trying to find matcher for the specified request '%s'\n", requestPath)
+	log.Infof("Trying to find matcher for the specified request '%s'\n", requestPath)
 	for matcher, service := range lb.ServerList {
 		if strings.HasPrefix(requestPath, matcher) {
-			fmt.Printf("Found service '%s' matching the specified request\n", service.Name)
+			log.Infof("Found service '%s' matching the specified request\n", service.Name)
 			return service, nil
 		}
 	}
@@ -39,7 +40,7 @@ func (lb *LoadBalancer) findServiceList(requestPath string) (*util.ServerList, e
 }
 
 func (lb *LoadBalancer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	fmt.Printf("Received new request from url: '%s'\n", r.Host)
+	log.Infof("Received new request from url: '%s'\n", r.Host)
 	
 	serviceList, err := lb.findServiceList(r.URL.Path)
 
@@ -57,7 +58,7 @@ func (lb *LoadBalancer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fmt.Printf("Forwarding to server: '%s'\n\n", next.URL.Host)
+	log.Infof("Forwarding to server: '%s'\n", next.URL.Host)
 	next.Proxy.ServeHTTP(w, r)
 }
 
@@ -82,11 +83,22 @@ func InitNewLoadBalancer(c *util.Config) *LoadBalancer {
 			})
 		}
 
+		healthChecker, err := health.InitNewHealthChecker(listOfServers)
+
+		if err != nil {
+			log.Fatal(err)
+		}
+
 		mapOfServers[service.Matcher] = &util.ServerList{
 			Servers: listOfServers,
 			Name: service.Name,
 			Strategy: strategy.LoadStrategy(service.Strategy),
+			HealthChecker: healthChecker,
 		}
+	}
+
+	for _, server := range mapOfServers {
+		go server.HealthChecker.Start()
 	}
 
 	return &LoadBalancer {
