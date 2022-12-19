@@ -78,8 +78,10 @@ func InitNewLoadBalancer(c *util.Config) *LoadBalancer {
 			listOfServers = append(listOfServers, &domain.Server {
 				URL: url,
 				Proxy: proxy,
+				Metadata: replica.Metadata,
 			})
 		}
+
 		mapOfServers[service.Matcher] = &util.ServerList{
 			Servers: listOfServers,
 			Name: service.Name,
