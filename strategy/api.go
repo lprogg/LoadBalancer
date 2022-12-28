@@ -1,8 +1,8 @@
 package strategy
 
 import (
+	"fmt"
 	"sync"
-	"sync/atomic"
 
 	"github.com/lprogg/LoadBalancer/domain"
 	log "github.com/sirupsen/logrus"
@@ -20,7 +20,8 @@ type BalancingStrategy interface {
 }
 
 type RoundRobin struct {
-	current uint64
+	mutex sync.Mutex
+	current int
 }
 
 type WeightedRoundRobin struct {
@@ -30,9 +31,26 @@ type WeightedRoundRobin struct {
 }
 
 func (r *RoundRobin) NextServer(servers []*domain.Server) (*domain.Server, error) {
-	next := atomic.AddUint64(&r.current, 1)
-	serversLen := uint64(len(servers))
-	selected := servers[next % serversLen]
+	r.mutex.Lock()
+	defer r.mutex.Unlock()
+
+	seen := 0
+	var selected *domain.Server
+
+	for seen < len(servers) {
+		selected = servers[r.current]
+		r.current = (r.current + 1) % len(servers)
+		if selected.IsAlive() {
+			break
+		}
+
+		seen += 1
+	}
+
+	if selected == nil || seen == len(servers) {
+		log.Error("All servers are down")
+		return nil, fmt.Errorf("Checked all the '%d' servers, none available", seen)
+	}
 
 	log.Infof("Strategy selected server: '%s'\n", selected.URL.Host)
 
@@ -48,26 +66,46 @@ func (r *WeightedRoundRobin) NextServer(servers []*domain.Server) (*domain.Serve
 		r.current = 0
 	}
 
-	capacity := servers[r.current].GetMetadataOrDefaultInt("weight", 1)
-	
-	if r.count[r.current] <= capacity {
-		r.count[r.current] += 1
-		log.Infof("Strategy selected server: '%s'\n", servers[r.current].URL.Host)
-		return servers[r.current], nil
+	seen := 0
+	var selected *domain.Server
+
+	for seen < len(servers) {
+		selected = servers[r.current]
+		capacity := selected.GetMetadataOrDefaultInt("weight", 1)
+		
+		if !selected.IsAlive() {
+			seen += 1
+			r.count[r.current] = 0
+			r.current = (r.current + 1) % len(servers)
+			continue
+		}
+		
+		if r.count[r.current] <= capacity {
+			r.count[r.current] += 1
+			log.Infof("Strategy selected server: '%s'\n", selected.URL.Host)
+			return selected, nil
+		}
+
+		r.count[r.current] = 0
+		r.current = (r.current + 1) % len(servers)
 	}
 
-	r.count[r.current] = 0
-	r.current = (r.current + 1) % len(servers)
-	log.Infof("Strategy selected server: '%s'\n", servers[r.current].URL.Host)
-	
-	return servers[r.current], nil
+	if selected == nil || seen == len(servers) {
+		log.Error("All servers are down")
+		return nil, fmt.Errorf("Checked all the '%d' servers, none available", seen)
+	}
+
+	return selected, nil
 }
 
 func init() {
 	strategies = make(map[string]func() BalancingStrategy)
 	
 	strategies[RoundRobinStrategy] = func() BalancingStrategy {
-		return &RoundRobin{current: 0}
+		return &RoundRobin{
+			mutex: sync.Mutex{},
+			current: 0,
+		}
 	}
 
 	strategies[WeightedRoundRobinStrategy] = func() BalancingStrategy {
@@ -83,6 +121,6 @@ func LoadStrategy(name string) BalancingStrategy {
 		return strategies[RoundRobinStrategy]()
 	}
 
-	log.Infof("Picked strategy '%s'\n\n", name)
+	log.Infof("Selected strategy '%s'\n\n", name)
 	return strategy()
 }
