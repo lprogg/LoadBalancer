@@ -1,7 +1,7 @@
 package health
 
 import (
-	"errors"
+	"fmt"
 	"net"
 	"time"
 
@@ -15,7 +15,7 @@ type HealthChecker struct {
 
 func InitNewHealthChecker(servers []*domain.Server) (*HealthChecker, error) {
 	if len(servers) == 0 {
-		return nil, errors.New("a server list expected, gotten an empty list")
+		return nil, fmt.Errorf("A server list expected, gotten an empty list")
 	}
 
 	return &HealthChecker{

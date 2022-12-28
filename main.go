@@ -31,12 +31,12 @@ func (lb *LoadBalancer) findServiceList(requestPath string) (*util.ServerList, e
 	log.Infof("Trying to find matcher for the specified request '%s'\n", requestPath)
 	for matcher, service := range lb.ServerList {
 		if strings.HasPrefix(requestPath, matcher) {
-			log.Infof("Found service '%s' matching the specified request\n", service.Name)
+			log.Infof("Found service '%s' matching the specified request\n\n", service.Name)
 			return service, nil
 		}
 	}
 
-	return nil, fmt.Errorf("could not find a matcher for the url: '%s'", requestPath)
+	return nil, fmt.Errorf("Could not find a matcher for the url: '%s'", requestPath)
 }
 
 func (lb *LoadBalancer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
